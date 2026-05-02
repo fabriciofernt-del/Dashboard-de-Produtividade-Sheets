@@ -1,0 +1,6 @@
+{
+  "name": "Dashboard de Produtividade Sheets",
+  "description": "Painel de acompanhamento de produtividade por colaborador e intervalo de 1h, integrado com Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

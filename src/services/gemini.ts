@@ -1,0 +1,55 @@
+import { GoogleGenAI, Type } from "@google/genai";
+import { RawData } from "../types";
+
+export async function extractDataFromPDF(base64Data: string): Promise<RawData[]> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key do Gemini não encontrada. Configure-a no painel do AI Studio.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3.1-pro-preview",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { 
+            text: "Leia as tabelas deste PDF de produção hospitalar/atendimentos. Extraia os dados e devolva em JSON estruturado, sendo uma lista de objetos contendo exatamente as chaves: 'colaborador' (string com nome do profissional), 'data' (string no formato AAAA-MM-DD), 'hora' (string no formato HH:MM) e 'qtd' (number). Se não houver quantidade explícita na linha da tabela, defina qtd como 1. Retorne APENAS a array JSON, sem marcações ou texto adicional." 
+          },
+          {
+            inlineData: {
+              mimeType: "application/pdf",
+              data: base64Data
+            }
+          }
+        ]
+      }
+    ],
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            colaborador: { type: Type.STRING },
+            data: { type: Type.STRING },
+            hora: { type: Type.STRING },
+            qtd: { type: Type.NUMBER }
+          },
+        }
+      }
+    }
+  });
+
+  const text = response.text || "[]";
+  try {
+    const rawJSON = JSON.parse(text);
+    return rawJSON as RawData[];
+  } catch (error) {
+    console.error("Erro ao fazer parse do JSON do Gemini:", error, text);
+    throw new Error("Erro ao interpretar retorno do Gemini. Formato inválido.");
+  }
+}
