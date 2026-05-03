@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { supabase } from '../db/supabaseClient';
+import { getSupabaseClient } from '../db/supabaseClient';
 
 export const dashboardRouter = Router();
 
@@ -7,8 +7,9 @@ dashboardRouter.get('/', async (req, res): Promise<void> => {
   try {
     const { startDate, endDate, colaborador } = req.query;
 
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      res.json([]);
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      res.json({ data: [], collaborators: [] });
       return;
     }
 
@@ -28,7 +29,11 @@ dashboardRouter.get('/', async (req, res): Promise<void> => {
 
     if (error) {
       console.error('Supabase query error:', error);
-      res.status(500).json({ error: 'Erro ao consultar o banco de dados.' });
+      if (error.message?.includes('schema cache') || error.code === 'PGRST205') {
+        res.status(400).json({ error: "A tabela 'attendances' não existe no banco de dados. Por favor, execute o script SQL 'supabase-schema.sql' no seu projeto Supabase." });
+      } else {
+        res.status(400).json({ error: `Erro no banco de dados: ${error.message}` });
+      }
       return;
     }
 
@@ -85,6 +90,6 @@ dashboardRouter.get('/', async (req, res): Promise<void> => {
     res.json({ data: result, collaborators });
   } catch (error: any) {
     console.error('Error fetching dashboard:', error);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    res.status(400).json({ error: error.message || 'Internal Server Error' });
   }
 });

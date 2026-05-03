@@ -11,7 +11,8 @@ export async function processFileBuffer(buffer: Buffer, mimetype: string, origin
   if (mimetype === 'text/csv' || extension === 'csv') {
     rawData = parse(buffer, {
       columns: true,
-      skip_empty_lines: true
+      skip_empty_lines: true,
+      bom: true
     });
   } else if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || mimetype === 'application/vnd.ms-excel' || extension === 'xlsx' || extension === 'xls') {
     const workbook = XLSX.read(buffer, { type: 'buffer' });

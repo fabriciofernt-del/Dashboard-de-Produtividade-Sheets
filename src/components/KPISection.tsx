@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Activity, CalendarDays, TrendingUp } from 'lucide-react';
+import { Users, Activity, CalendarDays, Clock } from 'lucide-react';
 import { PivotRow, HOURS_LIST } from '../types';
 
 interface KPISectionProps {
@@ -24,23 +24,23 @@ export const KPISection: React.FC<KPISectionProps> = ({ data }) => {
   const peakHour = Object.entries(hourTotals).reduce((a, b) => (a[1] > b[1] ? a : b), ["--:--", 0]);
 
   const cards = [
-    { title: "Total de Atendimentos", value: totalAtendimentos, icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Colaboradores Ativos", value: activeEmployees, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { title: "Média por Dia", value: avgPerDay, icon: CalendarDays, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { title: "Horário de Pico", value: peakHour[0], subtitle: `${peakHour[1]} atend.`, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
+    { title: "Total de Atendimentos", value: totalAtendimentos.toLocaleString('pt-BR'), icon: Activity, subtitle: "No período filtrado", colorClass: "text-blue-500" },
+    { title: "Média por Dia", value: Number(avgPerDay).toLocaleString('pt-BR'), icon: CalendarDays, subtitle: `${uniqueDays} dias analisados`, colorClass: "text-emerald-500" },
+    { title: "Colaboradores", value: activeEmployees, icon: Users, subtitle: "Ativos na seleção", colorClass: "text-indigo-500" },
+    { title: "Horário de Pico", value: peakHour[0], subtitle: `${peakHour[1]} atendimentos na faixa`, icon: Clock, colorClass: "text-orange-500" },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
       {cards.map((card, i) => (
-        <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4">
-          <div className={`${card.bg} p-3 rounded-lg`}>
-            <card.icon className={`h-6 w-6 ${card.color}`} />
+        <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col hover:border-slate-300 transition-colors">
+          <div className="flex items-center gap-2.5 mb-4">
+            <card.icon className={`h-4 w-4 ${card.colorClass} opacity-80`} strokeWidth={2.5} />
+            <h3 className="text-sm font-medium text-slate-500">{card.title}</h3>
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">{card.title}</p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{card.value}</h3>
-            {card.subtitle && <p className="text-xs text-slate-400 mt-0.5">{card.subtitle}</p>}
+          <div className="mt-auto">
+            <div className="text-3xl font-bold text-slate-900 tracking-tight">{card.value}</div>
+            {card.subtitle && <p className="text-xs text-slate-400 mt-1">{card.subtitle}</p>}
           </div>
         </div>
       ))}

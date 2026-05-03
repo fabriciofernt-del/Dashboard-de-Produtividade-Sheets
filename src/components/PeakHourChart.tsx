@@ -32,16 +32,14 @@ export const PeakHourChart: React.FC<PeakHourChartProps> = ({ data }) => {
   });
 
   const chartData = {
-    labels: HOURS_LIST,
+    labels: HOURS_LIST.map(h => h.split(':')[0] + 'h'),
     datasets: [
       {
         label: 'Total de Atendimentos',
         data: totalsByHour,
-        backgroundColor: 'rgba(37, 99, 235, 0.6)',
-        borderColor: 'rgb(37, 99, 235)',
-        borderWidth: 1,
+        backgroundColor: 'rgba(37, 99, 235, 0.8)',
+        hoverBackgroundColor: 'rgba(29, 78, 216, 1)',
         borderRadius: 4,
-        hoverBackgroundColor: 'rgb(37, 99, 235)',
       },
     ],
   };
@@ -54,40 +52,46 @@ export const PeakHourChart: React.FC<PeakHourChartProps> = ({ data }) => {
         display: false,
       },
       tooltip: {
-        backgroundColor: '#1e293b',
-        padding: 12,
-        titleFont: { size: 14, weight: 'bold' as const },
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        titleFont: { size: 13 },
         bodyFont: { size: 13 },
-      },
+        padding: 10,
+        cornerRadius: 8,
+        displayColors: false,
+      }
     },
     scales: {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
+          color: 'rgba(241, 245, 249, 1)',
         },
         ticks: {
-          font: { family: 'JetBrains Mono', size: 11 },
-        }
+          color: '#64748b',
+          font: { size: 11 }
+        },
+        border: { display: false }
       },
       x: {
         grid: {
           display: false,
         },
         ticks: {
-          font: { family: 'JetBrains Mono', size: 10 },
-        }
-      },
+          color: '#64748b',
+          font: { size: 11 }
+        },
+        border: { display: false }
+      }
     },
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-      <h2 className="font-semibold text-slate-800 mb-6 flex items-center gap-2">
-        Distribuição por Horário
-        <span className="text-xs font-normal text-slate-400 uppercase tracking-widest">(Visualização de Pico)</span>
-      </h2>
-      <div className="h-[250px] w-full">
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+         <h2 className="text-base font-semibold text-slate-800">Distribuição por Horário</h2>
+         <span className="text-[10px] font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 uppercase tracking-widest">Visão Geral</span>
+      </div>
+      <div className="h-[280px] w-full">
         <Bar data={chartData} options={options} />
       </div>
     </div>

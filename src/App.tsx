@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { LayoutDashboard, RefreshCw, Upload, FileUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, Upload, FileUp, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { PivotRow, DashboardFilters } from './types';
 import { PivotTable } from './components/PivotTable';
 import { KPISection } from './components/KPISection';
@@ -38,14 +38,21 @@ export default function App() {
       if (filters.colaborador) url.searchParams.append('colaborador', filters.colaborador);
 
       const res = await fetch(url);
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Erro ao carregar dados');
+      
+      let data = null;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Failed to parse response:", text);
       }
 
-      const { data, collaborators } = await res.json();
-      setPivotData(data);
-      setColaboradoresList(collaborators || []);
+      if (!res.ok) {
+        throw new Error((data && data.error) || `Erro no servidor (${res.status})`);
+      }
+
+      setPivotData(data ? data.data : []);
+      setColaboradoresList(data ? (data.collaborators || []) : []);
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Falha ao buscar dados do servidor.');
@@ -57,6 +64,13 @@ export default function App() {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -76,13 +90,19 @@ export default function App() {
         body: formData
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Erro ao processar arquivo");
+      let data = null;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+         console.error("Failed to parse upload response:", text);
       }
 
-      setSuccess(data.message);
+      if (!res.ok) {
+        throw new Error((data && data.error) || `Erro ao processar arquivo (${res.status})`);
+      }
+
+      setSuccess(data ? data.message : "Concluído");
       // Reload dashboard data
       fetchDashboardData();
     } catch (err: any) {
@@ -95,37 +115,36 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen pb-12">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50/50 pb-12">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-xs">
+        <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <LayoutDashboard className="text-white h-5 w-5" />
+            <div className="bg-blue-600 p-1.5 rounded-lg flex items-center justify-center">
+              <LayoutDashboard className="text-white h-4 w-4" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight">Dashboard de Atendimentos por Hora</h1>
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold leading-none mt-1">Leitura de relatórios (PDF/Excel) do MV com análise por colaborador</p>
+            <div className="flex flex-col justify-center">
+              <h1 className="text-base font-semibold text-slate-900 leading-tight">Dashboard de Atendimentos por Hora</h1>
+              <p className="text-xs text-slate-500 leading-none mt-0.5">Visão analítica de produção hospitalar/MV</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 mt-8">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-8">
         
         {/* Upload Section */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col sm:flex-row items-center gap-6 justify-between">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs mb-6 flex flex-col sm:flex-row items-center gap-4 justify-between transition-all hover:border-slate-300">
             <div className="flex-1">
-              <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                <FileUp className="h-5 w-5 text-blue-600" />
-                Importar Dados
+              <h2 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                <FileUp className="h-4 w-4 text-blue-600" />
+                Importar Dados de Produção
               </h2>
-              <p className="text-sm text-slate-500 mt-1 max-w-lg">
-                Selecione o arquivo de faturamento/produção exportado do sistema. 
-                <br/>Aceitamos formatos: <span className="font-semibold text-slate-700">.XLSX, .CSV e .PDF</span>.
+              <p className="text-xs text-slate-500 mt-1 max-w-lg">
+                Formatos aceitos: <span className="font-medium text-slate-700">.XLSX, .CSV, .PDF</span>
               </p>
             </div>
             
-            <div className="relative">
+            <div className="relative w-full sm:w-auto mt-2 sm:mt-0">
                <input 
                   type="file" 
                   id="file-upload" 
@@ -134,26 +153,45 @@ export default function App() {
                   disabled={loading}
                   className="hidden" 
                />
-               <label htmlFor="file-upload" className={`px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white font-semibold rounded-lg flex items-center justify-center gap-2 cursor-pointer shadow-md ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+               <label htmlFor="file-upload" className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white font-medium rounded-lg flex items-center justify-center gap-2 cursor-pointer shadow-sm text-sm ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   {loading ? 'Processando...' : 'Carregar Arquivo'}
                </label>
             </div>
         </div>
 
-        {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
-              <p>{error}</p>
-            </div>
-        )}
+        {/* Global Error Banner */}
+        <AnimatePresence>
+          {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start gap-3 shadow-xs"
+              >
+                <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-red-500" />
+                <p className="text-sm font-medium">{error}</p>
+              </motion.div>
+          )}
 
-        {success && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-lg mb-6 flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" />
-              <p>{success}</p>
-            </div>
-        )}
+          {/* Success Auto-hide Banner */}
+          {success && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2.5 rounded-lg mb-6 flex items-center justify-between text-sm shadow-xs overflow-hidden"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="font-medium">{success}</span>
+                </div>
+                <button onClick={() => setSuccess(null)} className="text-emerald-600 hover:text-emerald-900 focus:outline-hidden p-1 rounded-md hover:bg-emerald-100 transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {loading ? (
@@ -162,30 +200,30 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-20 text-slate-400"
+              className="flex flex-col items-center justify-center py-32 text-slate-400"
             >
-              <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-              <p className="font-medium">{loadingMsg}</p>
+              <div className="w-10 h-10 border-[3px] border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+              <p className="font-medium text-sm">{loadingMsg}</p>
             </motion.div>
           ) : pivotData.length === 0 ? (
             <motion.div 
               key="empty"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="py-20 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50"
+              className="py-24 mt-6 text-center border border-dashed border-slate-300 rounded-2xl bg-slate-50/50"
             >
-              <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100">
-                <FileUp className="h-8 w-8 text-slate-400" />
+              <div className="bg-white w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xs border border-slate-200">
+                <FileUp className="h-6 w-6 text-slate-400" />
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhum dado selecionado</h2>
-              <p className="text-slate-500 max-w-sm mx-auto">Faça o upload de uma planilha ou PDF de produção para visualizar os dashboards e insights.</p>
+              <h2 className="text-lg font-semibold text-slate-800 mb-1.5">Nenhum dado encontrado</h2>
+              <p className="text-slate-500 text-sm max-w-sm mx-auto">Faça o upload de um arquivo ou altere os filtros de pesquisa para visualizar os painéis.</p>
             </motion.div>
           ) : (
             <motion.div 
               key="content"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.3 }}
             >
               <div className="grid grid-cols-1 gap-6">
                 <FilterCard 
@@ -196,30 +234,16 @@ export default function App() {
                 
                 <KPISection data={pivotData} />
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-1">
-                    <PeakHourChart data={pivotData} />
-                  </div>
-                  
-                  <div className="lg:col-span-2">
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex items-center justify-between mb-6">
-                        <h2 className="font-semibold text-slate-800">Tabela Dinâmica de Atendimentos</h2>
-                        <div className="text-[10px] font-mono text-slate-400 font-semibold bg-slate-100 px-2 py-1 rounded">
-                          TOTAL: {pivotData.reduce((acc, r) => acc + r.totalDia, 0)} ATENDIMENTOS LISTADOS
-                        </div>
-                      </div>
-                      <PivotTable data={pivotData} />
-                    </div>
-                  </div>
-                </div>
+                <PeakHourChart data={pivotData} />
+                
+                <PivotTable data={pivotData} />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      <footer className="max-w-7xl mx-auto px-4 mt-12 text-center text-slate-400 text-xs">
+      <footer className="max-w-[1400px] mx-auto px-6 mt-12 text-center text-slate-400 text-xs">
         <p>© 2026 Dashboard MV Inteligente • Baseado em AI</p>
       </footer>
     </div>
