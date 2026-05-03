@@ -195,10 +195,31 @@ export default function App() {
                 initial={{ opacity: 0, y: -10, height: 0 }}
                 animate={{ opacity: 1, y: 0, height: 'auto' }}
                 exit={{ opacity: 0, y: -10, height: 0 }}
-                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start gap-3 shadow-xs"
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex flex-col shadow-xs"
               >
-                <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-red-500" />
-                <p className="text-sm font-medium">{error}</p>
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-red-500" />
+                  <div className="text-sm font-medium w-full">
+                    <p>{error}</p>
+                    {error.includes('supabase-schema.sql') && (
+                      <div className="mt-3 bg-red-900/10 p-3 rounded-md text-xs font-mono text-red-800 overflow-x-auto">
+                        <p className="mb-2 font-semibold">1. Abra o Editor SQL no seu painel Supabase</p>
+                        <p className="mb-1 font-semibold">2. Cole e execute o seguinte script:</p>
+                        <pre className="select-all">
+{`CREATE TABLE public.attendances (
+  id uuid default gen_random_uuid() primary key,
+  colaborador text not null,
+  data date not null,
+  hora time not null,
+  hora_faixa time not null,
+  qtd integer default 1,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);`}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </motion.div>
           )}
 

@@ -29,7 +29,7 @@ dashboardRouter.get('/', async (req, res): Promise<void> => {
 
     if (error) {
       console.error('Supabase query error:', error);
-      if (error.message?.includes('schema cache') || error.code === 'PGRST205') {
+      if (error.message?.includes('schema cache') || error.message?.includes('does not exist') || error.code === 'PGRST205' || error.code === '42P01') {
         res.status(400).json({ error: "A tabela 'attendances' não existe no banco de dados. Por favor, execute o script SQL 'supabase-schema.sql' no seu projeto Supabase." });
       } else {
         res.status(400).json({ error: `Erro no banco de dados: ${error.message}` });

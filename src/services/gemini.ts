@@ -12,7 +12,7 @@ export async function extractDataFromPDF(base64Data: string): Promise<RawData[]>
   let response;
   try {
     response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-preview",
+      model: "gemini-2.5-flash",
       contents: [
         {
           role: "user",

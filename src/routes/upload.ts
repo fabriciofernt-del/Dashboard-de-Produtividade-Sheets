@@ -56,7 +56,7 @@ async function saveToSupabase(records: any[], res: any) {
   const { error } = await supabase.from('attendances').insert(records);
   if (error) {
       console.error('Supabase Error:', error);
-      if (error.message?.includes('schema cache') || error.code === 'PGRST205') {
+      if (error.message?.includes('schema cache') || error.message?.includes('does not exist') || error.code === 'PGRST205' || error.code === '42P01') {
         res.status(400).json({ error: "A tabela 'attendances' não existe no banco de dados. Por favor, execute o script SQL 'supabase-schema.sql' no seu painel Supabase." });
       } else {
         res.status(400).json({ error: `Falha ao gravar no banco de dados. Verifique a tabela. (${error.message})` });
