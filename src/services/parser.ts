@@ -1,7 +1,6 @@
 import * as XLSX from "xlsx";
 import { parse } from "csv-parse/sync";
 import { DbAttendance } from "../types";
-import { extractDataFromPDF } from "./gemini"; // We will rename geminiService to have extractDataFromPDF 
 
 export async function processFileBuffer(buffer: Buffer, mimetype: string, originalname: string): Promise<DbAttendance[]> {
   const extension = originalname.split('.').pop()?.toLowerCase();
@@ -19,20 +18,14 @@ export async function processFileBuffer(buffer: Buffer, mimetype: string, origin
     const firstSheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[firstSheetName];
     rawData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
-  } else if (mimetype === 'application/pdf' || extension === 'pdf') {
-    const base64Data = buffer.toString('base64');
-    const geminiData = await extractDataFromPDF(base64Data);
-    // the gemini parser already normalizes the data to an extent. 
-    // Just map it directly to DbAttendance.
-    return geminiData.map((d: any) => mapToDbAttendance(d));
   } else {
-    throw new Error(`Formato não suportado: ${mimetype} (${extension})`);
+    throw new Error(`Formato não suportado: ${mimetype} (${extension}). Use PDF, CSV ou XLSX.`);
   }
 
   return normalizeData(rawData);
 }
 
-function mapToDbAttendance(row: any): DbAttendance {
+export function mapToDbAttendance(row: any): DbAttendance {
   let horaHH = "00";
   let horaStr = row.hora || "00:00";
   

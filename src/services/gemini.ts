@@ -4,7 +4,7 @@ import { RawData } from "../types";
 export async function extractDataFromPDF(base64Data: string): Promise<RawData[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("API Key do Gemini não encontrada. Configure-a no painel do AI Studio.");
+    throw new Error("API Key do Gemini não encontrada. Verifique se a variável está no .env");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -12,13 +12,13 @@ export async function extractDataFromPDF(base64Data: string): Promise<RawData[]>
   let response;
   try {
     response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-3.1-flash-preview",
       contents: [
         {
           role: "user",
           parts: [
             { 
-              text: "Leia as tabelas deste PDF de produção hospitalar/atendimentos. Extraia os dados e devolva em JSON estruturado, sendo uma lista de objetos contendo exatamente as chaves: 'colaborador' (string com nome do profissional), 'data' (string no formato AAAA-MM-DD), 'hora' (string no formato HH:MM) e 'qtd' (number). Se não houver quantidade explícita na linha da tabela, defina qtd como 1. Retorne APENAS a array JSON, sem marcações ou texto adicional." 
+              text: "Leia as tabelas deste PDF de produção hospitalar/atendimentos. Extraia os dados e devolva em JSON estruturado, sendo uma lista de objetos contendo exatamente as chaves: 'colaborador' (string com nome do profissional), 'data' (string no formato AAAA-MM-DD), 'hora' (string no formato HH:MM) e 'qtd' (number). Se não houver quantidade explícita na linha da tabela, defina qtd como 1. Retorne APENAS a array JSON." 
             },
             {
               inlineData: {

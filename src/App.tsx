@@ -11,6 +11,7 @@ import { KPISection } from './components/KPISection';
 import { FilterCard } from './components/FilterCard';
 import { PeakHourChart } from './components/PeakHourChart';
 import { motion, AnimatePresence } from 'motion/react';
+import { extractDataFromPDF } from './services/gemini';
 
 export default function App() {
   const [pivotData, setPivotData] = useState<PivotRow[]>([]);
@@ -72,6 +73,20 @@ export default function App() {
     }
   }, [success]);
 
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Strip data url prefix
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -79,16 +94,29 @@ export default function App() {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    setLoadingMsg("Enviando arquivo para o servidor...");
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      let res;
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        setLoadingMsg("Extraindo dados do PDF com Inteligência Artificial...");
+        const base64 = await readFileAsBase64(file);
+        const extractedData = await extractDataFromPDF(base64);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
+        setLoadingMsg("Gravando dados no servidor...");
+        res = await fetch('/api/upload/json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: extractedData })
+        });
+      } else {
+        setLoadingMsg("Enviando arquivo para o servidor...");
+        const formData = new FormData();
+        formData.append('file', file);
+        res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+      }
 
       let data = null;
       const text = await res.text();
@@ -107,7 +135,7 @@ export default function App() {
       fetchDashboardData();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Falha ao enviar arquivo. Verifique sua conexão e configurações.");
+      setError(err.message || "Falha ao processar arquivo. Verifique sua conexão e configurações.");
     } finally {
       setLoading(false);
       event.target.value = '';
